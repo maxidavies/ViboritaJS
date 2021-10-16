@@ -21,10 +21,19 @@
     <canvas width="500px" height="500px"></canvas>
     
     <script>
+
+        const ANCHOALTO = 500
+        const PESO = 10
         let direccion
         //instancio el intervalo
         const INTERVALO = 80
-        let controles = {direccion:{x: 1, y:0}, bicho:[{x:0, y:0}]}
+        let controles = {
+            direccion: {x: 1, y:0}, 
+            bicho: [{x:40, y:0}],
+            victima: {x:0, y:250},
+            jugando: true,
+            crecimiento: 0
+        }
 
         //creo un objeto donde se pueda guardar las teclas que voy a presionar
         const DIRECCION = {
@@ -49,19 +58,51 @@
         
 
         let looper = ()=>{
-            //referencio la cabeza del bicho
+            let cola = {}
             const sq = controles.bicho[0]
+            Object.assign(cola, controles.bicho[controles.bicho.length-1])
+            let atrapado = sq.x === controles.victima.x && sq.y === controles.victima.y
             //referencio la direccion actual
             let dx = controles.direccion.x
             let dy = controles.direccion.y
             //le sumo la direccion a su posicion
-            sq.x += dx
-            sq.y += dy
+            let tamaño = controles.bicho.length-1
+            if(controles.jugando){
+                for (let idx = tamaño; idx > -1; idx--){
+                    //referencio la cabeza del bicho
+                    const sq = controles.bicho[idx]
+                    if(idx === 0){
+                        sq.x += dx
+                        sq.y += dy    
+                    } else {
+                        sq.x = controles.bicho[idx-1].x
+                        sq.y = controles.bicho[idx-1].y 
+                    }
+                }
+            }
+
+            if (atrapado) {
+                controles.crecimiento += 1
+                revictima()
+            }
+
+            if(controles.crecimiento > 0) {
+                controles.bicho.push(cola)
+                controles.crecimiento -= 1
+            }
             //llamo animacion dibujar
             requestAnimationFrame(dibujar)
             //llamo a la funcion despues de cierto intervalo
             setTimeout(looper, INTERVALO)
         }
+
+        let revictima =() => {
+            let nuevaPosicion = cualquierLado()
+            let victima = controles.victima
+            victima.x = nuevaPosicion.x
+            victima.y = nuevaPosicion.y
+        }
+
         //Capturo las teclas que se presionan
         document.onkeydown = (e) => {
             //guardo en direccion la nueva direccion
@@ -74,18 +115,47 @@
             }
         } 
 
-        let dibujar = (color)=>{
+        let dibujar = ()=>{
             //borro el ctx
-            ctx.clearRect(0, 0, 500, 500)
-            //Indico color del dibujo
-            ctx.fillStyle = 'green'
+            ctx.clearRect(0, 0, ANCHOALTO, ANCHOALTO)
+            for (let idx = 0; idx < controles.bicho.length; idx++) {
+                const {x, y} = controles.bicho[idx]
+                dibujarActores('green', x, y)
+            }
             const sq = controles.bicho[0]
+            const victima = controles.victima
+            dibujarActores('yellow', victima.x, victima.y)
+        }
+
+        let dibujarActores = (color, x, y)=> {
+            
+            //Indico color del dibujo
+            ctx.fillStyle = color
             // Crear un rectangulo (x, y, ancho, alto)
-            ctx.fillRect(sq.x*10, sq.y*10, 10, 10)
+            ctx.fillRect(x*PESO, y*PESO, PESO, PESO)
+        }
+
+        let cualquierLado = ()=>{
+            let direccion = Object.values(DIRECCION)
+            return {
+                x: parseInt(Math.random()*ANCHOALTO/PESO),
+                y: parseInt(Math.random()*ANCHOALTO/PESO),
+                d: direccion[parseInt(Math.random()*11)]
+            }
         }
 
         //cuando el documento carga, llamo a looper
         window.onload = ()=>{
+            posiciones = cualquierLado()
+            let head = controles.bicho[0]
+            head.x = posiciones.x
+            head.y = posiciones.y
+            controles.direccion.x = posiciones.d[0]
+            controles.direccion.y = posiciones.d[1]
+            posicionVictima = cualquierLado()
+            let victima = controles.victima
+            victima.x = posicionVictima.x
+            victima.y = posicionVictima.y
             looper()
         }
     </script>
