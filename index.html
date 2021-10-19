@@ -31,7 +31,7 @@
             direccion: {x: 1, y:0}, 
             bicho: [{x:40, y:0}],
             victima: {x:0, y:250},
-            jugando: true,
+            jugando: false,
             crecimiento: 0
         }
 
@@ -58,16 +58,28 @@
         
 
         let looper = ()=>{
+            //armo objeto vacio cola
             let cola = {}
+            //instancio la cabeza del chobi
             const sq = controles.bicho[0]
+            //clona la ultima posicion de bicho en cola
             Object.assign(cola, controles.bicho[controles.bicho.length-1])
+            //verifico que comio
             let atrapado = sq.x === controles.victima.x && sq.y === controles.victima.y
+
+            if(detectarChoque()){
+                controles.jugando = false
+                reiniciar()
+            }
+
             //referencio la direccion actual
             let dx = controles.direccion.x
             let dy = controles.direccion.y
-            //le sumo la direccion a su posicion
+            //guardo el tamaño del chobi
             let tamaño = controles.bicho.length-1
+            //si el juego corre
             if(controles.jugando){
+                //for del bicho
                 for (let idx = tamaño; idx > -1; idx--){
                     //referencio la cabeza del bicho
                     const sq = controles.bicho[idx]
@@ -81,13 +93,19 @@
                 }
             }
 
+            //verifico si atrape algo
             if (atrapado) {
+                //crece
                 controles.crecimiento += 1
+                //reposiciono la comida
                 revictima()
-            }
+            }  
 
+            //debo crecer?
             if(controles.crecimiento > 0) {
+                //agrego a la serpiente el clon de cola creado anteriormente
                 controles.bicho.push(cola)
+                //le resto uno a crecimiento
                 controles.crecimiento -= 1
             }
             //llamo animacion dibujar
@@ -96,6 +114,25 @@
             setTimeout(looper, INTERVALO)
         }
 
+        //detecto choque con paredes y con una misma
+        let detectarChoque =() => {
+            //instancio cabeza
+            const HEAD = controles.bicho[0]
+            //pregunto si choca con los bordes
+            if(HEAD.x < 0 || HEAD.x >= ANCHOALTO/PESO || HEAD.y < 0 || HEAD.y >= ANCHOALTO/PESO){
+                return true
+            }
+            //pregunto si choca con ella misma
+            for(let idx = 1; idx < controles.bicho.length; idx++){
+                const SQ = controles.bicho[idx]
+                if(SQ.x === HEAD.x && SQ.y === HEAD.y){
+                    return true
+                }
+            }
+            //devuelve true si choca
+        }
+
+        //reposiciona la comida que fue capturada
         let revictima =() => {
             let nuevaPosicion = cualquierLado()
             let victima = controles.victima
@@ -116,12 +153,14 @@
         } 
 
         let dibujar = ()=>{
-            //borro el ctx
+            //borro mi canvas
             ctx.clearRect(0, 0, ANCHOALTO, ANCHOALTO)
+            //recorro el bicho
             for (let idx = 0; idx < controles.bicho.length; idx++) {
                 const {x, y} = controles.bicho[idx]
                 dibujarActores('green', x, y)
             }
+            //dibujo la comida
             const sq = controles.bicho[0]
             const victima = controles.victima
             dibujarActores('yellow', victima.x, victima.y)
@@ -135,6 +174,7 @@
             ctx.fillRect(x*PESO, y*PESO, PESO, PESO)
         }
 
+        //crea posicion y direccion random
         let cualquierLado = ()=>{
             let direccion = Object.values(DIRECCION)
             return {
@@ -144,8 +184,16 @@
             }
         }
 
-        //cuando el documento carga, llamo a looper
-        window.onload = ()=>{
+        //reinicia el juego a cero
+        let reiniciar =() =>{
+            controles = {
+            direccion: {x: 1, y:0}, 
+            bicho: [{x:40, y:0}],
+            victima: {x:0, y:250},
+            jugando: false,
+            crecimiento: 0
+        }
+            controles.jugando = true
             posiciones = cualquierLado()
             let head = controles.bicho[0]
             head.x = posiciones.x
@@ -156,6 +204,11 @@
             let victima = controles.victima
             victima.x = posicionVictima.x
             victima.y = posicionVictima.y
+            
+        }
+        //cuando el documento carga, llamo a looper
+        window.onload = ()=>{
+            reiniciar()
             looper()
         }
     </script>
